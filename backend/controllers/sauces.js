@@ -57,63 +57,66 @@ exports.deleteSauce = (req, res, next) => {
   };
 
   exports.likeSauce = (req, res, next) => {
-    console.log({ _id: req.params.id });
-    console.log({ likes: req.body.like });
-    console.log({ usersLiked: req.body.userId });
-  
     const sauceObject = req.body;
-    console.log(sauceObject);
-  
-    if (sauceObject.like === 1) {
-      Sauce.updateOne(
-        { _id: req.params.id },
-        {
-          $inc: { likes: +1 },
-          $push: { usersLiked: req.body.userId },
-        }
-      )
-        .then(() => res.status(200).json({ message: "un like en plus !" }))
-        .catch((error) => res.status(400).json({ error }));
-    } else if (sauceObject.like === -1) {
-      Sauce.updateOne(
-        { _id: req.params.id },
-        {
-          $inc: { dislikes: +1 },
-          $push: { usersDisliked: req.body.userId },
-        }
-      )
-        .then(() => res.status(200).json({ message: "un dislike en plus !" }))
-        .catch((error) => res.status(400).json({ error }));
-    } else {
-      Sauce.findOne({ _id: req.params.id })
-        .then((sauce) => {
-          console.log(sauce);
-          if (sauce.usersLiked.includes(req.body.userId)) {
-            Sauce.updateOne(
-              { _id: req.params.id },
-              {
-                $pull: { usersLiked: req.body.userId },
-                $inc: { likes: -1 },
+    
+    Sauce.findById(req.params.id, function(err, mySauce){
+      
+      if (mySauce !== null){
+        if (sauceObject.like === 1 && mySauce.usersLiked.includes(req.body.userId) == false) {
+          Sauce.updateOne(
+            { _id: req.params.id },
+            {
+              $inc: { likes: +1 },
+              $push: { usersLiked: req.body.userId },
+            }
+          )
+            .then(() => res.status(200).json({ message: "un like en plus !" }))
+            .catch((error) => res.status(400).json({ error }));
+        } else if (sauceObject.like === -1 && mySauce.usersDisliked.includes(req.body.userId) == false) {
+          console.log(mySauce);
+          Sauce.updateOne(
+            { _id: req.params.id },
+            {
+              $inc: { dislikes: +1 },
+              $push: { usersDisliked: req.body.userId },
+            }
+          )
+            .then(() => res.status(200).json({ message: "un dislike en plus !" }))
+            .catch((error) => res.status(400).json({ error }));
+        } else {
+          Sauce.findOne({ _id: req.params.id })
+            .then((sauce) => {
+              if (sauce.usersLiked.includes(req.body.userId)) {
+                Sauce.updateOne(
+                  { _id: req.params.id },
+                  {
+                    $pull: { usersLiked: req.body.userId },
+                    $inc: { likes: -1 },
+                  }
+                )
+                  .then(() => res.status(200).json({ message: "enleve le like !" }))
+                  .catch((error) => res.status(400).json({ error }));
+              } else if (sauce.usersDisliked.includes(req.body.userId)) {
+                Sauce.updateOne(
+                  { _id: req.params.id },
+                  {
+                    $pull: { usersDisliked: req.body.userId },
+                    $inc: { dislikes: -1 },
+                  }
+                )
+                  .then(() =>
+                    res.status(200).json({ message: "enleve le dislike !" })
+                  )
+                  .catch((error) => res.status(400).json({ error }));
               }
-            )
-              .then(() => res.status(200).json({ message: "enleve le like !" }))
-              .catch((error) => res.status(400).json({ error }));
-          } else if (sauce.usersDisliked.includes(req.body.userId)) {
-            Sauce.updateOne(
-              { _id: req.params.id },
-              {
-                $pull: { usersDisliked: req.body.userId },
-                $inc: { dislikes: -1 },
-              }
-            )
-              .then(() =>
-                res.status(200).json({ message: "enleve le dislike !" })
-              )
-              .catch((error) => res.status(400).json({ error }));
-          }
-        })
-        .catch((error) => res.status(400).json({ error }));
-    }
+            })
+            .catch((error) => res.status(400).json({ error }));
+        }
+      }
+    });
+    
+    
+    
   };
 
  
